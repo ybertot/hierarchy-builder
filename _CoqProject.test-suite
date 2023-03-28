@@ -3,7 +3,7 @@
 -arg -w -arg -abstract-large-number
 -arg -w -arg -disj-pattern-notation
 -arg -w -arg -notation-overridden
-arg -w -arg +elpi.typecheck
+-arg -w -arg +elpi.typecheck
 
 examples/readme.v
 examples/hulk.v
@@ -84,7 +84,7 @@ tests/issue284.v
 tests/issue287.v
 tests/store_types_cs.v
 tests/findall_cs_types.v
-
+tests/instance_merge.v
 -R tests HB.tests
 -R examples HB.examples
 
