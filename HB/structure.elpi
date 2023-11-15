@@ -75,6 +75,12 @@ declare Module BSkel Sort :- std.do! [
     log.coq.env.add-const-noimplicits "arg_sort" SortProjection SortProjTy ff ArgSortCst
   ),
 
+  if-verbose (coq.say {header} "declaring generic_type canonical constant"),
+  (ClassAlias => class-def CurrentClass => GRDepsClauses => MixinMems =>
+    w-params.then MLwP mk-fun mk-fun (private.generic-body ClassName) Generic),
+  if-verbose (coq.say {header} "declaring generic constant =" Generic),
+  log.coq.env.add-const-noimplicits "generic_type" Generic _ @transparent! ConstGeneric,
+
   if-verbose (coq.say {header} "start module Exports"),
 
   log.coq.env.begin-module "Exports" none,
@@ -123,6 +129,8 @@ declare Module BSkel Sort :- std.do! [
     ])
     (coq.say "declare:" ClassName "should be an inductive", fail),
 
+  coq.TC.declare-class ClassName,
+
   if-verbose (coq.say {header} "accumulating various props"),
   std.flatten [
       Factories, [ClassAlias], [is-structure Structure],
@@ -131,6 +139,8 @@ declare Module BSkel Sort :- std.do! [
     ]
     NewClauses,
   acc-clauses current NewClauses,
+
+  log.coq.CS.declare-instance ConstGeneric,
 
   if-verbose (coq.say {header} "stop module Exports"),
   log.coq.env.end-module-name "Exports" Exports,
@@ -580,8 +590,40 @@ pack-body ClassName PL T MLwA F :- std.do! [
 ].
 pack-body.aux PL T BuildC PackS  Body :- !, std.do! [
   synthesis.infer-all-gref-deps PL T BuildC Class,
+  coq.say "args" PackS PL T Class,
   mk-app (global PackS) {std.append PL [T, Class]} Body
 ].
+
+% [generic-body ClassName P T MLwA B] asserts
+%  B = fun c => Pack P T c
+% under a context with P and T
+pred generic-body i:classname, i:list term, i:term, i:list (w-args mixinname), o:term.
+generic-body ClassName PL T _MLwA F :- std.do! [
+  class-def (class ClassName S _),
+  get-constructor S PackS,
+  F = fun {coq.string->name "C"} {mk-app (global ClassName) {std.append PL [T]} } (c\ {mk-app (global PackS) {std.append PL [T, c]} }),
+].
+
+pred declare-auto-infer-params-abbrev i:structure, i:mixins, o:located, o:list prop.
+declare-auto-infer-params-abbrev GR MLwP (loc-abbreviation Abbrev) [phant-abbrev GR (const PhC) Abbrev] :-
+  get-option "infer" Map, !,
+  Map => mk-infer (global GR) MLwP PhT,
+  phant.add-abbreviation "type" PhT PhC Abbrev.
+declare-auto-infer-params-abbrev GR _ (loc-gref GR) [].
+
+pred mk-infer i:term, i:mixins, o:phant-term.
+mk-infer T (w-params.nil _ _ _) PH :- phant.init T PH.
+mk-infer T (w-params.cons ID Ty W) R :- (get-option ID "Type" ; get-option ID ""), !,
+  @pi-parameter ID Ty t\ mk-infer {mk-app T [t]} (W t) (PhT t),
+  phant.fun-infer-type sortclass {coq.id->name ID} Ty PhT R.
+mk-infer T (w-params.cons ID Ty W) R :- (get-option ID "_ -> _"), !,
+  @pi-parameter ID Ty t\ mk-infer {mk-app T [t]} (W t) (PhT t),
+  phant.fun-infer-type funclass {coq.id->name ID} Ty PhT R.
+mk-infer T (w-params.cons ID Ty W) R :- not (get-option ID _), !,
+  @pi-parameter ID Ty t\ mk-infer {mk-app T [t]} (W t) (PhT t),
+  phant.fun-real {coq.id->name ID} Ty PhT R.
+mk-infer _ (w-params.cons ID _ _) _ :- get-option ID Infer,
+  coq.error "Automatic inference of paramter" ID "from" Infer "not supported".
 
 pred mk-infer-key i:class, i:term, i:mixins, i:term, o:phant-term.
 mk-infer-key CoeClass K (w-params.nil ID _ _) St PhK :-
