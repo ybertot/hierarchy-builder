@@ -14,7 +14,7 @@ Definition eta {T} (x : T) := x.
 Definition ignore {T} (x: T) := x.
 Definition ignore_disabled {T T'} (x : T) (x' : T') := x'.
 
-Ltac done_tc := done || apply _.
+Ltac done_tc := trivial || apply _ || done.
 
 (* ********************* structures ****************************** *)
 From elpi Require Import elpi.
