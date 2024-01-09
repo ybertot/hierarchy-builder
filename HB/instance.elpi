@@ -98,13 +98,17 @@ declare-const Name BodySkel TyWPSkel CSL :- std.do! [
 % corresponding structure and declares it canonical.
 % Each mixin used in order to fulfill a class is returned together with its name.
 pred declare-all i:term, i:list class, o:list (pair gref term), o:list (pair id constant).
-declare-all T [class Class Struct MLwP|Rest] TCL L :-
+declare-all T [class Class Struct MLwP|Rest] TCL [pr Name CS|L] :-
 
+  coq.say "declare-all" Class MLwP,
   infer-class T Class Struct MLwP KC S Name STy Clauses,
 
   !,
 
-  decl-const-in-struct Name S STy _CS,
+  decl-const-in-struct Name S STy CS,
+
+  term->cs-pattern T Pat,
+  acc-clause current (hb-CS-instance Pat Struct),
 
   Clauses => declare-all T Rest TCL1 L,
   TCL = [pr Class KC|TCL1].
@@ -115,7 +119,7 @@ declare-all _ [] [] [].
 % for generic types, we need first to instantiate them by giving them holes,
 % so they can be used to instantiate the classes
 pred declare-all-on-type-constructor i:term, i:list class, o:list (pair gref term), o:list (pair id constant).
-declare-all-on-type-constructor T [class Class Struct MLwP|Rest] TCL L :-
+declare-all-on-type-constructor T [class Class Struct MLwP|Rest] TCL [pr Name CS|L] :-
 
   %TODO: compute the arity of the Class subject and saturate up to that point
   %      there may even be more than one possibility
@@ -131,7 +135,8 @@ declare-all-on-type-constructor T [class Class Struct MLwP|Rest] TCL L :-
   abstract-holes.main KC KCok,
   std.assert-ok! (coq.typecheck KCok _) "declare-all-on-type-constructor: badly closed",
 
-  decl-const-in-struct Name SC SCTy _CS,
+  decl-const-in-struct Name SC SCTy CS,
+  coq.say "I want to declare the instance with" T Class Struct MLwP Name CS Ty KC S,
 
   Clauses => declare-all-on-type-constructor T Rest TCL1 L,
   TCL = [pr Class KCok|TCL1].
@@ -145,7 +150,7 @@ infer-class T  Class Struct MLwP KCAppNames S Name STy Clauses:- std.do![
   params->holes MLwP Params,
   get-constructor Class KC,
 
-  if (synthesis.infer-all-args-let Params T KC KCApp ok)
+  if (coq.say "infer-all-args-let", synthesis.infer-all-args-let Params T KC KCApp ok)
      (if-verbose (coq.say {header} "we can build a" {nice-gref->string Struct} "on"
         {coq.term->string T}))
      fail,
@@ -164,7 +169,14 @@ infer-class T  Class Struct MLwP KCAppNames S Name STy Clauses:- std.do![
 ].
 
 pred decl-const-in-struct i:string, i:term, i:term, i:constant.
-decl-const-in-struct _Name _S _STy _CS :- !.
+decl-const-in-struct Name S STy CS :- std.do![
+
+  log.coq.env.add-const-noimplicits Name S STy @transparent! CS, % Bug coq/coq#11155, could be a Let
+  % with-locality (log.coq.CS.declare-instance CS), % Bug coq/coq#11155, should be local
+  acc-clause current (local-canonical CS),
+  if-verbose (coq.say {header} "structure instance" Name "declared"),
+].
+
 
 pred declare-factory-sort-deps i:gref, o:list (pair gref term).
 declare-factory-sort-deps GR TCClauses :- std.do! [
@@ -210,6 +222,7 @@ mk-factory-sort-deps AliasGR TCClauses CSL :- std.do! [
   std.map SortMSL
     (c\ o\ sigma m t\ c = mixin-src _ m t, o = mixin-src KFSort m t)
     KFSortMSL,
+  coq.say "declare-all with KFSortMSL und mixins" KFSortMSL,
   KFSortMSL =>
     synthesis.under-mixin-src-from-factory.do! KFSort GCF
       [declare-all KFSort {findall-classes-for ML} TCClauses CSL]
@@ -249,8 +262,7 @@ saturate-instances TCClauses :- std.do! [
 
 pred no-instance-for i:cs-pattern, i:class.
 no-instance-for K (class _ S _) :-
-  get-structure-sort-projection S (global Proj),
-  coq.CS.db-for Proj K [].
+  not (std.mem! {hb-CS-db-for K} S).
 
 /* ------------------------------------------------------------------------- */
 /* ----------------------------- private code ------------------------------ */
@@ -349,6 +361,7 @@ declare-canonical-instances-from-factory-and-local-builders
       add-all-mixins T FGR NewMixins ff Clauses MCSL,
   ]),
   list-w-params_list {factory-provides Factory} ML,
+  coq.say "declare-all with Clauses" Clauses,
   Clauses => declare-all T {findall-classes-for ML} TCClauses CCSL,
   std.append MCSL CCSL CSL
 ].
@@ -368,6 +381,7 @@ declare-canonical-instances-from-factory Factory T F ClausesHas TCClauses CSL :-
       list-w-params_list {factory-provides Factory} ML,
       add-all-mixins T Factory ML tt Clauses MCSL,
       std.map-filter Clauses (mixin-src->has-mixin-instance ) ClausesHas,
+		coq.say "declare-all with ClausesHas" ClausesHas,
       ClausesHas => declare-all T {findall-classes-for ML} TCClauses CCSL, % declare-all-on-type-constructor doesn't work here
     ]
   ],

@@ -61,6 +61,12 @@ declare Module BSkel Sort :- std.do! [
     (private.clone-phant-body ClassName SortProjection Structure) PhClone,
   phant.add-abbreviation "clone" PhClone _ _,
 
+  if-verbose (coq.say {header} "declaring generic_class constant"),
+  (ClassAlias => class-def CurrentClass => GRDepsClauses => MixinMems =>
+    w-params.then MLwP mk-fun mk-fun (private.generic-class-body ClassName) GenericClass),
+  if-verbose (coq.say {header} "declaring generic_class constant =" GenericClass),
+  log.coq.env.add-const-noimplicits "generic_class" GenericClass _ @transparent! ConstGenericClass,
+
   if-verbose (coq.say {header} "declaring pack_ constant"),
   (ClassAlias => class-def CurrentClass => GRDepsClauses => MixinMems =>
     w-params.then MLwP mk-fun mk-fun (private.pack-body ClassName) Pack),
@@ -144,6 +150,7 @@ declare Module BSkel Sort :- std.do! [
     NewClauses,
   acc-clauses current NewClauses,
 
+  log.coq.CS.declare-instance ConstGenericClass,
   log.coq.CS.declare-instance ConstGeneric,
 
   if-verbose (coq.say {header} "stop module Exports"),
@@ -522,8 +529,12 @@ declare-class+structure MLwP Sort
   w-params.then MLwP (mk-parameter explicit) (mk-parameter explicit)
     synthesize-fields.body ClassDeclaration,
 
+  coq.say "obtained axioms_" ClassDeclaration,
+
   std.assert-ok! (coq.typecheck-indt-decl ClassDeclaration) "declare-class: illtyped",
-  (@primitive! => log.coq.env.add-indt ClassDeclaration ClassInd),
+  coq.say "typechecked axioms_" ClassDeclaration,
+  log.coq.env.add-indt ClassDeclaration ClassInd,
+  coq.say "declared axioms_" ClassDeclaration ClassInd,
 
   coq.env.projections ClassInd Projs,
   % TODO: put this code in a named clause
@@ -647,6 +658,19 @@ clone-phant-body ClassName SortProjection ((indt I) as Structure) PL T _ PhF :- 
       {phant.fun-unify none cT {mk-app PackPLT [c]}
         {phant.init {mk-app PackPLT [c]}} }}),
   PhF = {phant.fun-real `cT` SPL cT\ {phant.fun-implicit `c` CPL c\ Ph cT c }}
+].
+
+% [generic-class-body ClassName P T MLwA B] asserts
+%  B = fun m0 ... mn => Class P T m0 ... mn
+% under a context with P and T
+pred generic-class-body i:classname, i:list term, i:term, i:list (w-args mixinname), o:term.
+generic-class-body ClassName PL T MLwA F :- std.do! [
+  get-constructor ClassName BuildC,
+  synthesis.under-mixins.then MLwA mk-fun
+    (generic-class-body.aux PL T BuildC) F,
+].
+generic-class-body.aux PL T BuildC Body :- !, std.do! [
+  synthesis.infer-all-gref-deps PL T BuildC Body
 ].
 
 % [pack-body ClassName P T MLwA B] asserts

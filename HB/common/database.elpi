@@ -411,11 +411,18 @@ has-mixin-instance->mixin-src (has-mixin-instance _ M IHd) C :- std.do![
   mixin-instance-type->mixin-src Ty M T [] C,
 ].
 
+pred hb-CS-instance o:cs-pattern, o:structure.
+
+pred hb-CS-db-for i:cs-pattern, o:list structure.
+hb-CS-db-for T L :- std.do! [
+  std.findall (hb-CS-instance T _S) LS,
+  std.map LS (c\ r\  c = hb-CS-instance _ r) L
+].
+
 pred get-canonical-structures i:term, o:list structure.
 get-canonical-structures TyTrm StructL :- std.do! [
   term->cs-pattern TyTrm Pat, !,
-  coq.CS.db-for _ Pat DBGTyL,
-  std.map-filter DBGTyL get-cs-structure StructL,
+  hb-CS-db-for Pat StructL,
 ].
 
 pred get-canonical-instances i:term, o:list constant.

@@ -254,7 +254,8 @@ instantiate-all-args-let (fun N Tm F) T (let N Tm X R) Diag :- !, std.do! [
   coq.safe-dest-app Tm (global TmGR) _,
   factory-alias->gref TmGR M,
   if (mixin-for T M X)
-     (@pi-def N Tm X m\ instantiate-all-args-let (F m) T (R m) Diag)
+     (%coq.say "got mixin" T M X,
+	    @pi-def N Tm X m\ instantiate-all-args-let (F m) T (R m) Diag)
      (Diag = error Msg,
       Msg is "cannot synthesize mixin " ^ {nice-gref->string M} ^
              " for " ^ {coq.term->string T}),
@@ -274,7 +275,13 @@ structure-instance->mixin-srcs T S MSLC :- std.do! [
   std.append Holes [ST] HolesST,
   coq.mk-app (global (const SortProj)) HolesST SortHolesST,
   % find an instance in ST
+  %coq.say "initial SortHolesST" SortHolesST,
   coq.unify-eq T SortHolesST ok,
+  %coq.say "unified with T" T SortHolesST,
+  % Should not unification infer the typeclasses?
+  coq.ltac.collect-goals SortHolesST GST [],
+  std.forall GST (g\ std.spy(coq.ltac.open (coq.ltac.call-ltac1 "done_tc") g [])),
+  %coq.say "final SortHolesST" SortHolesST,
   % we look for an instance which is concrete, we take the parts
   get-constructor S KS,
   coq.mk-app (global KS) {std.append Holes [T, CT]} KSHolesC,
@@ -305,16 +312,19 @@ structure-instance->mixin-srcs.aux T  F CL :-
 % OldMixins (that is, the contribution of FI to the current context)
 pred factory-instance->new-mixins i:list mixinname, i:term, o:list mixinname.
 factory-instance->new-mixins OldMixins X NewML :- std.do! [
-  std.assert-ok! (coq.typecheck X XTy) "mixin-src: X illtyped",
-  if (not (coq.safe-dest-app XTy (global _) _))
-     (coq.error "Term:\n" {coq.term->string X}
-                "\nhas type:\n" {coq.term->string XTy}
-                "\nwhich is not a record")
-     true,
-  coq.term->gref XTy Src,
-  factory-provides Src MLwP,
-  list-w-params_list MLwP ML,
-  std.filter ML (m\ not(std.mem! OldMixins m)) NewML,
+  if (not (ground_term X))
+     (coq.warning "HB" "HB.factory-instance->new-mixins"
+	    "received an ungrounded term", NewML = [])
+  ( std.assert-ok! (coq.typecheck X XTy) "mixin-src: X illtyped",
+    if (not (coq.safe-dest-app XTy (global _) _))
+       (coq.error "Term:\n" {coq.term->string X}
+                  "\nhas type:\n" {coq.term->string XTy}
+                  "\nwhich is not a record")
+       true,
+    coq.term->gref XTy Src,
+    factory-provides Src MLwP,
+    list-w-params_list MLwP ML,
+    std.filter ML (m\ not(std.mem! OldMixins m)) NewML)
 ].
 
 }}
