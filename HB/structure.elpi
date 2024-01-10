@@ -126,6 +126,8 @@ declare Module BSkel Sort :- std.do! [
 
   private.declare-generic-coercion-elpi (global Structure) (global (const ConstGeneric)),
 
+  coq.elpi.accumulate _ "hb.db" (clause _ (after "0") (pred-to-flush ClassName SortProjection ClassProjection)),
+
   if-verbose (coq.say {header} "exporting unification hints"),
   ClassAlias => Factories => GRDepsClauses =>
     private.declare-unification-hints SortProjection ClassProjection CurrentClass NewJoins,
@@ -206,9 +208,15 @@ declare Module BSkel Sort :- std.do! [
   NewClauses => if-MC-compat (private.mc-compat-structure Module ModulePath MLToExport
     {w-params.nparams MLwP} ClassProjection GRPack),
 
+  coq.say "Please use `HB.flush` now.",
+
 % Automatic saturation disabled since it is expensive
 %  NewClauses => instance.saturate-instances,
 ].
+
+pred pred-to-flush o:gref, o:term, o:term.
+:name "0"
+pred-to-flush _ _ _ :- fail.
 
 /* ------------------------------------------------------------------------- */
 /* ----------------------------- private code ------------------------------ */
@@ -338,6 +346,56 @@ pred mk-generic-coercion i:term, i:term, o:prop.
 mk-generic-coercion Structure G Clause :-
   coq.typecheck Structure T ok,
   mk-generic-coercion-aux T Structure G [] Clause.
+
+pred mk-sortclass-instance.under-binders i:gref, i:term, i:term, i:term, i:term, i:list term, o:prop.
+mk-sortclass-instance.under-binders Class (prod _ T BodyC) SP (prod N T BodySP) CP L (pi x\ C x) :- !,
+  @pi-decl N T x\ mk-sortclass-instance.under-binders Class (BodyC x) SP (BodySP x) CP [x|L] (C x).
+mk-sortclass-instance.under-binders Class _ SP (prod N T _) CP L (pi x\ C x) :- !,
+  gref->pred-name Class P,
+  @pi-decl N T x\ std.rev [x|L] (Lx x),
+	 coq.elpi.predicate P {std.rev [{mk-app CP (Lx x)}, {mk-app SP (Lx x)}|L]} (Cl x),
+	 (C x = (Cl x :- coq.say "try sortclass")).
+mk-sortclass-instance.under-binders Class _ _ _ _ [] _ :-
+	coq.error "mk-sortclass-instance : Class" Class "has no subject.".
+mk-sortclass-instance.under-binders Class _ SP _ _ _ _ :-
+	coq.error "mk-sortclass-instance : The sort projection" SP "has the same number of arguments as the class" Class ".".
+
+% [mk-sortclass-instance Class SortProj ClassProj] builds the clause to add to the tc database corresponding
+% to the instance on the sort projection applied to an element of the structure obtained by applying the class projection. *)
+pred mk-sortclass-instance i:gref, i:term, i:term, o:prop.
+mk-sortclass-instance Class SortProj ClassProj Clause :-
+  coq.typecheck (global Class) TC ok,
+  coq.typecheck SortProj TS ok,
+  mk-sortclass-instance.under-binders Class TC SortProj TS ClassProj [] Clause.
+
+
+pred mk-context-instance.under-binders.mk-predicate i:gref, i:list term, i:term, i:term, o:prop.
+mk-context-instance.under-binders.mk-predicate Class ArgsC I TI Clause :-
+  gref->pred-name Class P,
+  coq.elpi.predicate P {std.rev [I|ArgsC]} C,
+  Clause = (pi goals\ C :- coq.say "using context",
+		coq.typecheck I TI ok,
+		coq.ltac.collect-goals I goals [],
+      @no-tc! => std.forall goals (g\ coq.ltac.open (coq.ltac.call-ltac1 "assumption") g []),
+      coq.ltac.collect-goals I [] []).
+
+pred mk-context-instance.under-binders i:gref, i:term, i:gref, i:term, i:list term, i:list term, o:prop.
+mk-context-instance.under-binders Class (prod _ T BodyC) I (prod N T BodyI) LC LI (pi x\ C x) :- !,
+  @pi-decl N T x\ mk-context-instance.under-binders Class (BodyC x) I (BodyI x) [x|LC] [x|LI] (C x).
+mk-context-instance.under-binders Class TC I (prod N T BodyI) LC LI (pi x\ C x) :- !,
+  @pi-decl N T x\ mk-context-instance.under-binders Class TC I (BodyI x) LC [x|LI] (C x).
+mk-context-instance.under-binders Class _ I _ ArgsC ArgsI (pi x\ Clause x) :-
+  pi x\ mk-context-instance.under-binders.mk-predicate Class ArgsC {mk-app (global I) {std.rev ArgsI}} x (Clause x).
+
+% [mk-context-instance Class I Clause] builds the clause to add to the tc database corresponding
+% to the instance I of class Class. The lambda abstractions in I are abstracted as variables
+% for Clause. *)
+pred mk-context-instance i:gref, o:prop.
+mk-context-instance Class Clause :-
+  get-constructor Class I,
+  coq.typecheck (global Class) TC ok,
+  coq.typecheck (global I) TI ok,
+  mk-context-instance.under-binders Class TC I TI [] [] Clause.
 
 pred mk-coe-class-body
   i:factoryname, % From class

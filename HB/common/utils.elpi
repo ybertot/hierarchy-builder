@@ -335,7 +335,6 @@ saturate-type-constructor T ET :-
 % Turns a term extracted from a context into a well-typed term, applying the partially
 % applied subterms to the right number of argument and abstracting the now undeclared constants.
 pred mk-tc-instance.under-binders.mk-predicate i:gref, i:term, i:list sealed-goal, i:list term, i:list term, i:term, i:diagnostic i:float, i:prop, o:prop.
-:name "toto"
 mk-tc-instance.under-binders.mk-predicate Class Ty Goals Args ArgsR I _Diag Ctime Fails Clause :-
   gref->pred-name Class P,
   std.append Args [I] Argsx,
@@ -367,7 +366,7 @@ mk-tc-instance.under-binders Class _TC I Args (pi x y z t u v\ Clause x y z t u 
 
 % [mk-tc-instance Class I Clause] builds the clause to add to the tc database corresponding
 % to the instance I of class Class. The lambda abstractions in I are abstracted as variables
-% for Clause and if under these I is an application, saturates its arguments. *)
+% for Clause. *)
 pred mk-tc-instance i:gref, i:term, o:prop.
 mk-tc-instance Class (fun N T Body) (pi x\ C x) :- !,
   @pi-decl N T x\ mk-tc-instance Class (Body x) (C x).

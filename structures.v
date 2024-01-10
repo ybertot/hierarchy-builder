@@ -20,6 +20,9 @@ Ltac done_tc := apply _.
 From elpi Require Import elpi.
 From elpi.apps Require Export tc coercion.
 
+Elpi TC.AddAllClasses.
+Elpi TC.AddAllInstances.
+
 From elpi.apps.tc Extra Dependency "base.elpi" as base.
 From elpi.apps.tc Extra Dependency "tc_aux.elpi" as tc_aux.
 From elpi.apps.tc Extra Dependency "create_tc_predicate.elpi" as create_tc_predicate.
@@ -738,6 +741,42 @@ main _ :- coq.error "Usage: HB.structure Definition <ModuleName> := { A of <Fact
 }}.
 Elpi Typecheck.
 Elpi Export HB.structure.
+
+(* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% *)
+(* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% *)
+(* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% *)
+
+(* [HB.flush] flushes the database of predicates to accumulate *)
+
+#[arguments(raw)] Elpi Command HB.flush.
+Elpi Accumulate Db coercion.db.
+Elpi Accumulate Db tc.db.
+Elpi Accumulate Db tc_options.db.
+Elpi Accumulate Db hb.db.
+Elpi Accumulate File "HB/common/stdpp.elpi".
+Elpi Accumulate File "HB/common/database.elpi".
+#[skip="8.1[56].*"] Elpi Accumulate File "HB/common/compat_acc_clauses_all.elpi".
+#[only="8.1[56].*"] Elpi Accumulate File "HB/common/compat_acc_clauses_816.elpi".
+Elpi Accumulate File base.
+Elpi Accumulate File tc_aux.
+Elpi Accumulate File compiler.
+Elpi Accumulate File "HB/common/utils.elpi".
+Elpi Accumulate File "HB/common/log.elpi".
+Elpi Accumulate File "HB/common/synthesis.elpi".
+Elpi Accumulate File "HB/common/phant-abbreviation.elpi".
+Elpi Accumulate File "HB/export.elpi".
+Elpi Accumulate File "HB/instance.elpi".
+Elpi Accumulate File "HB/context.elpi".
+Elpi Accumulate File create_tc_predicate.
+Elpi Accumulate File "HB/factory.elpi".
+Elpi Accumulate File "HB/structure.elpi".
+Elpi Accumulate File "HB/flush.elpi".
+Elpi Accumulate lp:{{
+main [] :- !, flush.flush.
+main _ :- coq.error "Usage: HB.flush".
+}}.
+Elpi Typecheck.
+Elpi Export HB.flush.
 
 (* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% *)
 (* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% *)
