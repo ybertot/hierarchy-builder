@@ -353,8 +353,7 @@ mk-sortclass-instance.under-binders Class (prod _ T BodyC) SP (prod N T BodySP) 
 mk-sortclass-instance.under-binders Class _ SP (prod N T _) CP L (pi x\ C x) :- !,
   gref->pred-name Class P,
   @pi-decl N T x\ std.rev [x|L] (Lx x),
-	 coq.elpi.predicate P {std.rev [{mk-app CP (Lx x)}, {mk-app SP (Lx x)}|L]} (Cl x),
-	 (C x = (Cl x :- coq.say "try sortclass")).
+	 coq.elpi.predicate P {std.rev [{mk-app CP (Lx x)}, {mk-app SP (Lx x)}|L]} (C x).
 mk-sortclass-instance.under-binders Class _ _ _ _ [] _ :-
 	coq.error "mk-sortclass-instance : Class" Class "has no subject.".
 mk-sortclass-instance.under-binders Class _ SP _ _ _ _ :-
@@ -373,8 +372,7 @@ pred mk-context-instance.under-binders.mk-predicate i:gref, i:list term, i:term,
 mk-context-instance.under-binders.mk-predicate Class ArgsC I TI Clause :-
   gref->pred-name Class P,
   coq.elpi.predicate P {std.rev [I|ArgsC]} C,
-  Clause = (pi goals\ C :- coq.say "using context",
-		coq.typecheck I TI ok,
+  Clause = (pi goals\ C :- coq.typecheck I TI ok,
 		coq.ltac.collect-goals I goals [],
       @no-tc! => std.forall goals (g\ coq.ltac.open (coq.ltac.call-ltac1 "assumption") g []),
       coq.ltac.collect-goals I [] []).
