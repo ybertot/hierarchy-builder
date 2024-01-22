@@ -343,10 +343,13 @@ mk-generic-coercion Structure G Clause :-
 pred mk-sortclass-instance.under-binders i:gref, i:term, i:term, i:term, i:term, i:list term, o:prop.
 mk-sortclass-instance.under-binders Class (prod _ T BodyC) SP (prod N T BodySP) CP L (pi x\ C x) :- !,
   @pi-decl N T x\ mk-sortclass-instance.under-binders Class (BodyC x) SP (BodySP x) CP [x|L] (C x).
-mk-sortclass-instance.under-binders Class _ SP (prod N T _) CP L (pi x\ C x) :- !,
+mk-sortclass-instance.under-binders Class _ SP (prod N T _) CP L (pi x y z\ Clause x y z) :- !,
   gref->pred-name Class P,
-  @pi-decl N T x\ std.rev [x|L] (Lx x),
-	 coq.elpi.predicate P {std.rev [{mk-app CP (Lx x)}, {mk-app SP (Lx x)}|L]} (C x).
+  @pi-decl N T x\ std.rev [x|L] (Lx x), pi y z\
+	 coq.elpi.predicate P {std.rev [y, z|L]} (C x y z),
+	 (Clause x y z) = (C x y z :- %coq.say "enter " P "for sortclass " y z,
+		mk-app CP (Lx x) y,
+		mk-app SP (Lx x) z).
 mk-sortclass-instance.under-binders Class _ _ _ _ [] _ :-
 	coq.error "mk-sortclass-instance : Class" Class "has no subject.".
 mk-sortclass-instance.under-binders Class _ SP _ _ _ _ :-
@@ -365,10 +368,15 @@ pred mk-context-instance.under-binders.mk-predicate i:gref, i:list term, i:term,
 mk-context-instance.under-binders.mk-predicate Class ArgsC I TI Clause :-
   gref->pred-name Class P,
   coq.elpi.predicate P {std.rev [I|ArgsC]} C,
-  Clause = (pi goals\ C :- coq.typecheck I TI ok,
-		coq.ltac.collect-goals I goals [],
-      @no-tc! => std.forall goals (g\ coq.ltac.open (coq.ltac.call-ltac1 "assumption") g []),
-      coq.ltac.collect-goals I [] []).
+  Clause = (pi shgoals goals\ C :- %coq.say "enter " P " with context",
+		coq.typecheck I TI ok,
+      %coq.say "try instance " I,
+		coq.ltac.collect-goals I goals shgoals,
+		%coq.say "goals: " goals shgoals,
+      @no-tc! => std.forall shgoals (g\ coq.ltac.open (coq.ltac.call-ltac1 "iter_exact") g []),
+      @no-tc! => std.forall goals (g\ coq.ltac.open (coq.ltac.call-ltac1 "iter_exact") g []),
+      coq.ltac.collect-goals I [] []%, coq.say "success"
+		).
 
 pred mk-context-instance.under-binders i:gref, i:term, i:gref, i:term, i:list term, i:list term, o:prop.
 mk-context-instance.under-binders Class (prod _ T BodyC) I (prod N T BodyI) LC LI (pi x\ C x) :- !,
@@ -578,12 +586,8 @@ declare-class+structure MLwP Sort
   w-params.then MLwP (mk-parameter explicit) (mk-parameter explicit)
     synthesize-fields.body ClassDeclaration,
 
-  coq.say "obtained axioms_" ClassDeclaration,
-
   std.assert-ok! (coq.typecheck-indt-decl ClassDeclaration) "declare-class: illtyped",
-  coq.say "typechecked axioms_" ClassDeclaration,
   log.coq.env.add-indt ClassDeclaration ClassInd,
-  coq.say "declared axioms_" ClassDeclaration ClassInd,
 
   coq.env.projections ClassInd Projs,
   % TODO: put this code in a named clause
