@@ -749,6 +749,14 @@ Elpi Export HB.structure.
 
 (* [HB.flush] flushes the database of predicates to accumulate *)
 
+Elpi Accumulate TC.Solver lp:{{
+pred coq.term-is-gref? i:term, o:gref.
+coq.term-is-gref? (global GR) GR :- !.
+coq.term-is-gref? (pglobal GR _) GR :- !.
+coq.term-is-gref? (app [Hd|_]) GR :- !, coq.term-is-gref? Hd GR.
+coq.term-is-gref? (let _ _ T x\x) GR :- !, coq.term-is-gref? T GR.
+}}.
+
 #[arguments(raw)] Elpi Command HB.flush.
 Elpi Accumulate Db coercion.db.
 Elpi Accumulate Db tc.db.

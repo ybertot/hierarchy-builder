@@ -254,6 +254,11 @@ cs-pattern->term (cs-sort sprop) (sort sprop).
 cs-pattern->term (cs-sort _) T :- coq.elaborate-skeleton {{ Type }} _ T ok.
 cs-pattern->term cs-prod T :- coq.elaborate-skeleton (prod `x` Ty_ x\ Bo_ x) _ T ok.
 
+pred term-is-cs-pattern? i:term, o:cs-pattern.
+term-is-cs-pattern? (prod _ _ _) cs-prod.
+term-is-cs-pattern? (sort U) (cs-sort U).
+term-is-cs-pattern? T (cs-gref GR) :- coq.term-is-gref? T GR.
+
 pred term->cs-pattern i:term, o:cs-pattern.
 term->cs-pattern (prod _ _ _) cs-prod.
 term->cs-pattern (sort U) (cs-sort U).

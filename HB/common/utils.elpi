@@ -332,6 +332,8 @@ saturate-type-constructor T ET :-
 
 % Make the tc clause for an instance I of class C.
 
+pred dummy.
+
 % Turns a term extracted from a context into a well-typed term, applying the partially
 % applied subterms to the right number of argument and abstracting the now undeclared constants.
 pred mk-tc-instance.under-binders.mk-predicate i:gref, i:term, i:list sealed-goal, i:list sealed-goal, i:list term, i:list term, i:term, i:diagnostic i:float, i:prop, o:prop.
@@ -341,23 +343,31 @@ mk-tc-instance.under-binders.mk-predicate Class Ty SHGoals Goals Args ArgsR I _D
   coq.elpi.predicate P Argsx C,
   coq.typecheck I TI ok,
   if (TI = app [_|ArgsI]) (true) (ArgsI = []),
-  Clause = (C :- coq.say "enter " P,
+  Clause = (C :- coq.say "enter " P, coq.say "",
    std.time (if (
       std.map Args coq.reduction.lazy.bi-norm ArgsR,
-      coq.say "try instance " I "for " ArgsR,
+      coq.say "try instance " I "for " ArgsR, coq.say "",
+      @no-tc!
+			=> (pi x y p csx csy\
+				std.forall2 [x] [y] p :- !,
+					if (std.spy(coq.term-is-gref? x csx), !,
+						std.spy(coq.term-is-gref? y csy))
+						(csx = csy) (true),
+					coq.unify-eq x y ok)
+			=> std.forall2 ArgsR ArgsI (x\ y\ coq.unify-eq x y ok),
+		coq.say "unified args" I Goals, coq.say "",
       @no-tc! => coq.typecheck I Ty ok,
-		coq.say "instance typechecks",
-      @no-tc! => std.forall2 ArgsR ArgsI (x\ y\ coq.unify-eq x y ok),
-		coq.say "unified args" I Goals,
+		coq.say "instance typechecks" I, coq.say "",
       coq.ltac.collect-goals I Goals SHGoals,
-		coq.say "got goals" Goals SHGoals,
-      @no-tc! => std.forall SHGoals (g\ coq.ltac.open (coq.ltac.call-ltac1 "done_tc") g []),
+		coq.say "got goals" Goals SHGoals, coq.say "",
       @no-tc! => std.forall Goals (g\ coq.ltac.open (coq.ltac.call-ltac1 "done_tc") g []),
-		coq.say "proved goals",
-      coq.ltac.collect-goals I [] [] ) (Fails = true, coq.say "success" I
-		                                              ) (Fails = fail, coq.say "failure" I
+      @no-tc! => std.forall SHGoals (g\ coq.ltac.open (coq.ltac.call-ltac1 "done_tc") g []),
+		coq.say "proved goals", coq.say "",
+      coq.ltac.collect-goals I [] [] ) (Fails = true, coq.say "success" I, coq.say ""
+		                                              ) (Fails = fail, coq.say "failure" I, coq.say ""
 																	 )) Ctime,
-    %coq.say "exit time " Ctime,
+    %coq.say "exit time " Ctime, coq.say "",
+	 coq.say "leaving " P "\n",
 	 Fails).
 
 pred mk-tc-instance.under-binders i:gref, i:term, i:term, i:list term, o:prop.
