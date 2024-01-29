@@ -755,6 +755,13 @@ coq.term-is-gref? (global GR) GR :- !.
 coq.term-is-gref? (pglobal GR _) GR :- !.
 coq.term-is-gref? (app [Hd|_]) GR :- !, coq.term-is-gref? Hd GR.
 coq.term-is-gref? (let _ _ T x\x) GR :- !, coq.term-is-gref? T GR.
+pred solve-all-with i:term, i:string.
+solve-all-with T Tac :-
+  coq.typecheck T _ ok,
+  coq.ltac.collect-goals T G _,
+  if (G = []) (true) (
+    std.forall G (g\ coq.ltac.open (coq.ltac.call-ltac1 Tac) g []),
+	 solve-all-with T Tac).
 }}.
 
 #[arguments(raw)] Elpi Command HB.flush.

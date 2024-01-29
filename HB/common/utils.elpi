@@ -334,49 +334,51 @@ saturate-type-constructor T ET :-
 
 pred dummy.
 
+pred solve-all-with i:term, i:string.
+solve-all-with T Tac :-
+  coq.typecheck T _ ok,
+  coq.ltac.collect-goals T G _,
+  if (G = []) (true) (
+    std.forall G (g\ coq.ltac.open (coq.ltac.call-ltac1 Tac) g []),
+	 solve-all-with T Tac).
+
 % Turns a term extracted from a context into a well-typed term, applying the partially
 % applied subterms to the right number of argument and abstracting the now undeclared constants.
-pred mk-tc-instance.under-binders.mk-predicate i:gref, i:term, i:list sealed-goal, i:list sealed-goal, i:list term, i:list term, i:term, i:diagnostic i:float, i:prop, o:prop.
-mk-tc-instance.under-binders.mk-predicate Class Ty SHGoals Goals Args ArgsR I _Diag Ctime Fails Clause :-
+pred mk-tc-instance.under-binders.mk-predicate i:gref, i:list term, i:term, o:prop.
+mk-tc-instance.under-binders.mk-predicate Class Args I Clause :-
   gref->pred-name Class P,
   std.append Args [I] Argsx,
   coq.elpi.predicate P Argsx C,
   coq.typecheck I TI ok,
   if (TI = app [_|ArgsI]) (true) (ArgsI = []),
-  Clause = (C :- coq.say "enter " P, coq.say "",
+  Clause = (pi time fails argsR\ C :- std.do! [coq.say "enter " P, coq.say "",
    std.time (if (
-      std.map Args coq.reduction.lazy.bi-norm ArgsR,
-      coq.say "try instance " I "for " ArgsR, coq.say "",
+      std.map Args coq.reduction.lazy.bi-norm argsR,
+      coq.say "try instance " I "for " argsR, coq.say "",
       @no-tc!
-			=> (pi x y p csx csy\
+			=> (pi x y p csx csy okx oky\
 				std.forall2 [x] [y] p :- !,
-					if (std.spy(coq.term-is-gref? x csx), !,
-						std.spy(coq.term-is-gref? y csy))
+					if (coq.term-is-gref? x csx, !,
+						coq.term-is-gref? y csy)
 						(csx = csy) (true),
 					coq.unify-eq x y ok)
-			=> std.forall2 ArgsR ArgsI (x\ y\ coq.unify-eq x y ok),
-		coq.say "unified args" I Goals, coq.say "",
-      @no-tc! => coq.typecheck I Ty ok,
-		coq.say "instance typechecks" I, coq.say "",
-      coq.ltac.collect-goals I Goals SHGoals,
-		coq.say "got goals" Goals SHGoals, coq.say "",
-      @no-tc! => std.forall Goals (g\ coq.ltac.open (coq.ltac.call-ltac1 "done_tc") g []),
-      @no-tc! => std.forall SHGoals (g\ coq.ltac.open (coq.ltac.call-ltac1 "done_tc") g []),
-		coq.say "proved goals", coq.say "",
-      coq.ltac.collect-goals I [] [] ) (Fails = true, coq.say "success" I, coq.say ""
-		                                              ) (Fails = fail, coq.say "failure" I, coq.say ""
-																	 )) Ctime,
-    %coq.say "exit time " Ctime, coq.say "",
-	 coq.say "leaving " P "\n",
-	 Fails).
+			=> std.forall2 argsR ArgsI (x\ y\ coq.unify-eq x y ok),
+		%coq.say "unified args" I, coq.say "",
+		@no-tc! => solve-all-with I "done_tc",
+		coq.ltac.collect-goals I [] [] ) (fails = true, coq.say "success" I, coq.say ""
+		                                              ) (fails = fail, coq.say "failure" I, coq.say ""
+																	 )) time,
+    %coq.say "exit time " time, coq.say "",
+	 %coq.say "leaving " P "\n",
+	 fails]).
 
 pred mk-tc-instance.under-binders i:gref, i:term, i:term, i:list term, o:prop.
 mk-tc-instance.under-binders Class TC (fun N T Body) L (pi x\ C x) :- !,
   @pi-decl N T x\ mk-tc-instance.under-binders Class TC (Body x) L (C x).
 mk-tc-instance.under-binders Class (prod N T Body) X L (pi x\ C x) :- !,
   @pi-decl N T x\ mk-tc-instance.under-binders Class (Body x) X [x|L] (C x).
-mk-tc-instance.under-binders Class _TC I Args (pi x y z t u v w\ Clause x y z t u v w) :-
-  (pi x y z t u v w\ mk-tc-instance.under-binders.mk-predicate Class x y w Args z I t u v (Clause x y z t u v w)).
+mk-tc-instance.under-binders Class _TC I Args Clause :-
+  mk-tc-instance.under-binders.mk-predicate Class Args I Clause.
 
 % [mk-tc-instance Class I Clause] builds the clause to add to the tc database corresponding
 % to the instance I of class Class. The lambda abstractions in I are abstracted as variables
