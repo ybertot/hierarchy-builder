@@ -16,7 +16,7 @@ declare-existing T0 F0 :- std.do! [
   factory-alias->gref FactoryAlias Factory,
   private.declare-instance Factory T F Clauses TCClauses _,
   acc-clauses current Clauses,
-  std.forall TCClauses (x\ sigma c t\ x = pr c t, coq.elpi.accumulate _ "tc.db" (clause _ (after "1") {mk-tc-instance c t})),
+  std.forall TCClauses (x\ sigma c t tc n tr\ x = pr c t, simpl-tc-instance t tc, coq.env.fresh-global-id "TC_instance_" n, coq.env.add-const n tc _ _ tr, coq.TC.declare-instance (const tr) 1),
 ].
 
 % [declare-const N B Ty] adds a Definition N : Ty := B where Ty is a factory
@@ -83,11 +83,12 @@ declare-const Name BodySkel TyWPSkel CSL :- std.do! [
     (coq.warning "HB" "HB.instance"
     "You are declaring an instance inside a section. If this command fails, it is likely
      due to section variables."),
-  std.forall Insts (x\ sigma c t cl tr\
+  std.forall Insts (x\ sigma c t tr tc n tr2\
     x = pr c t,
-    coq.env.const t (some tr) _,
-    mk-tc-instance c tr cl,
-    coq.elpi.accumulate _ "tc.db" (clause _ (after "1") cl)),
+    coq.env.const t (some tr) _, coq.say "aha" tr,
+    simpl-tc-instance tr tc, coq.say "oops" tc,
+	 coq.env.fresh-global-id "TC_instance_" n, coq.env.add-const n tc _ _ tr2,
+    coq.TC.declare-instance (const tr2) 1),
 ].
 
 % [declare-all T CL MCSTL] given a type T and a list of class definition

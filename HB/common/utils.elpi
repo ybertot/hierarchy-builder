@@ -389,3 +389,43 @@ mk-tc-instance Class (fun N T Body) (pi x\ C x) :- !,
 mk-tc-instance Class I Clause :-
   coq.typecheck (global Class) TC ok,
   mk-tc-instance.under-binders Class TC I [] Clause.
+
+pred simpl-tc-instance i:term, o:term.
+simpl-tc-instance (fun N T' Body) R :- std.do! [coq.say "Hello, world!" N,
+  copy T' T,
+  (T = app [global (indt S)|Params]; (T = global (indt S), Params = [])),
+  coq.say "0" T' T,
+  coq.env.projections S [some SortP, some ClassP],
+  coq.say "1",
+  coq.env.indt S _ _ _ _ [BuildS] _,
+  coq.say "2", 
+  @pi-decl N T x\ sigma Paramsx SortPx ClassPx Ts Tc Rx\
+	 coq.say "3" Params,
+	 std.append Params [x] Paramsx,
+	 coq.say "4" SortP Paramsx SortPx,
+	 coq.mk-app (global (const SortP)) Paramsx SortPx,
+	 coq.say "5",
+	 coq.mk-app (global (const ClassP)) Paramsx ClassPx,
+	 coq.say "6" SortPx Ts,
+	 coq.typecheck SortPx Ts ok,
+	 coq.say "7",
+	 coq.typecheck ClassPx Tc ok,
+	 coq.say "8",
+	 @pi-decl _ Ts xs\
+     coq.say "8.0" Tc (Tc' xs) SortPx,
+     copy SortPx xs => copy Tc (Tc' xs),
+     coq.say "8.1" Ts Tc (Tc' xs),
+     @pi-decl _ (Tc' xs) xc\ sigma Paramsxsc Bx Body'\
+       std.append Params [xs, xc] Paramsxsc,
+       coq.say "9" BuildS Paramsxsc Bx,
+       coq.mk-app (global (indc BuildS)) Paramsxsc Bx,
+       coq.say "10" R (fun _ Ts (xs\ fun _ (Tc' xs) (xc\ Rx xs xc))),
+       R = (fun _ Ts (xs\ fun _ (Tc' xs) (xc\ Rx xs xc))),
+       coq.say "11",
+       copy ClassPx xc =>
+       copy SortPx xs =>
+		   copy x Bx => copy (Body x) Body',
+		 simpl-tc-instance Body' (Rx xs xc)].
+simpl-tc-instance (fun N T Body) (fun N T Rx) :-
+  @pi-decl N T x\ simpl-tc-instance (Body x) (Rx x).
+simpl-tc-instance I I.
