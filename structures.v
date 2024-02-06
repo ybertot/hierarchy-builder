@@ -19,7 +19,7 @@ Ltac done_tc := apply _ || done.
 
 (* ********************* structures ****************************** *)
 From elpi Require Import elpi.
-From elpi.apps Require Export tc coercion.
+From elpi.apps Require Export tc coercion cs.
 
 Elpi TC.AddAllClasses.
 Elpi TC.AddAllInstances.

@@ -76,8 +76,8 @@ declare Module BSkel Sort :- std.do! [
   ),
 
   if-verbose (coq.say {header} "declaring projections as canonical"),
-  private.sort-cs-catch-all ClassName,
-  private.class-cs-catch-all ClassName,
+  class-def CurrentClass => private.sort-cs-catch-all ClassName,
+  class-def CurrentClass => private.class-cs-catch-all ClassName,
   (ClassAlias => class-def CurrentClass => GRDepsClauses => MixinMems =>
     w-params.then MLwP mk-fun mk-fun (private.generic-body ClassName) Generic),
   if-verbose (coq.say {header} "declaring generic constant =" Generic),
@@ -718,7 +718,9 @@ clone-phant-body ClassName SortProjection ((indt I) as Structure) PL T _ PhF :- 
 % under a context with P and T
 pred pack-body i:classname, i:list term, i:term, i:list (w-args mixinname), o:term.
 pack-body ClassName PL T MLwA F :- std.do! [
+	coq.say "pack body" ClassName,
   class-def (class ClassName S _),
+  coq.say "got" S,
   get-constructor ClassName BuildC,
   get-constructor S PackS,
   synthesis.under-mixins.then MLwA mk-fun
@@ -734,33 +736,43 @@ pack-body.aux PL T BuildC PackS  Body :- !, std.do! [
 %  deferring the instanciation of the class field to typeclass resolution.
 pred sort-cs-catch-all i:classname.
 sort-cs-catch-all ClassName :- std.do! [
+	coq.say "sort cs" ClassName,
   class-def (class ClassName S _),
+  coq.say "1",
   get-constructor S PackS,
-  get-sort-projection S Ssort
-  gref->pred-name ClassName Pred
+  coq.say "2",
+  get-structure-sort-projection S Ssort,
+  coq.say "3",
+  gref->pred-name ClassName Pred,
+  coq.say "uptoclause",
   coq.elpi.accumulate _ "tc.db" (clause _ _ (
-    pi ctx lhs rhs res paramsx clause class/
+    pi ctx lhs rhs res params paramsx c cl\
 		cs ctx lhs rhs res :-
 		  if (lhs = app [Ssort | params]) true (lhs = Ssort, params = []),
-		  std.append params [rhs] paramsx,
-		  mk-predicate Pred paramsx clause,
-		  clause class,
-		  mk-app (app [PackS, paramsx]) class res))].
+		  std.append params [rhs, cl] paramsx,
+		  coq.elpi.predicate Pred paramsx c,
+		  c,
+		  mk-app (global PackS) paramsx res)),
+		  coq.say "ok"].
 
 % [class-cs-catch-all ClassName] declares a generic canonical
 %  structure for the class projection on the structure on class ClassName,
 %  deferring the instanciation of the sort field to the elaborator.
 pred class-cs-catch-all i:classname.
 class-cs-catch-all ClassName :- std.do! [
+	coq.say "class cs",
   class-def (class ClassName S _),
   get-constructor S PackS,
-  get-class-projection S Sclass
+  get-structure-class-projection S Sclass,
   coq.elpi.accumulate _ "tc.db" (clause _ _ (
-    pi ctx lhs rhs res sort partial/
+    pi ctx lhs rhs res params pparams sort partial ty\
 		cs ctx lhs rhs res :-
 		  if (lhs = app [Sclass | params]) true (lhs = Sclass, params = []),
-		  mk-app (app [PackS | params]) [sort, rhs] partial,
-		  coq.elaborate-skeleton partial (app [S | params]) res ok))].
+		  mk-app (global PackS) params pparams,
+		  mk-app pparams [sort, rhs] partial,
+		  mk-app (global S) params ty,
+		  coq.elaborate-skeleton partial ty res ok)),
+		  coq.say "ok"].
 
 % [generic-body ClassName P T MLwA B] asserts
 %  B = fun c => Pack P T c
