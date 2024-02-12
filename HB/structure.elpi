@@ -743,16 +743,14 @@ sort-cs-catch-all ClassName :- std.do! [
   coq.say "2",
   get-structure-sort-projection S Ssort,
   coq.say "3",
-  gref->pred-name ClassName Pred,
-  coq.say "uptoclause",
-  coq.elpi.accumulate _ "tc.db" (clause _ _ (
-    pi ctx lhs rhs res params paramsx c cl\
+  coq.elpi.accumulate _ "cs.db" (clause _ _ (
+    pi ctx lhs rhs res params paramsx cl partial ty\
 		cs ctx lhs rhs res :-
 		  if (lhs = app [Ssort | params]) true (lhs = Ssort, params = []),
 		  std.append params [rhs, cl] paramsx,
-		  coq.elpi.predicate Pred paramsx c,
-		  c,
-		  mk-app (global PackS) paramsx res)),
+		  mk-app (global PackS) paramsx partial,
+		  mk-app (global S) params ty,
+		  coq.elaborate-skeleton partial ty res ok)),
 		  coq.say "ok"].
 
 % [class-cs-catch-all ClassName] declares a generic canonical
@@ -764,7 +762,7 @@ class-cs-catch-all ClassName :- std.do! [
   class-def (class ClassName S _),
   get-constructor S PackS,
   get-structure-class-projection S Sclass,
-  coq.elpi.accumulate _ "tc.db" (clause _ _ (
+  coq.elpi.accumulate _ "cs.db" (clause _ _ (
     pi ctx lhs rhs res params pparams sort partial ty\
 		cs ctx lhs rhs res :-
 		  if (lhs = app [Sclass | params]) true (lhs = Sclass, params = []),

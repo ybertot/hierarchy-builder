@@ -38,12 +38,11 @@ declare.mixins TheType TheParamsSection MLwPRaw MLwP MSL CL :-  std.do! [
     {list-w-params_list MLwPRaw}),
   std.map TheParamsSection triple_2 TheParams,
   apply-w-params MLwPRaw TheParams TheType MLwAllArgsRaw,
-  std.fold MLwAllArgsRaw (pr [] (triple [] [] [])) (private.postulate-mixin TheType) (pr TCClauses (triple CL MSL MLwPRev)),
+  std.fold MLwAllArgsRaw (pr [] (triple [] [] [])) (private.postulate-mixin TheType) (pr _TCClauses (triple CL MSL MLwPRev)),
   acc-clauses current {std.map CL (cs\r\ r = local-canonical cs)},
   std.rev MLwPRev MLwPSection,
   build-list-w-params TheParamsSection TheType MLwPSection MLwP,
-  acc-clauses current MSL,
-  std.forall TCClauses (x\ sigma c t cl\ x = pr c t, mk-tc-instance c t cl)
+  acc-clauses current MSL
 ].
 
 /* ------------------------------------------------------------------------- */
