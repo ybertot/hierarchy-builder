@@ -680,7 +680,6 @@ Elpi Accumulate Db coercion.db.
 Elpi Accumulate Db tc.db.
 Elpi Accumulate Db tc_options.db.
 Elpi Accumulate Db cs.db.
-Elpi Accumulate Db cs.db.
 Elpi Accumulate Db hb.db.
 Elpi Accumulate File "HB/common/stdpp.elpi".
 Elpi Accumulate File "HB/common/database.elpi".
@@ -769,7 +768,7 @@ solve-all-with T Tac :-
   coq.typecheck T _ ok,
   coq.ltac.collect-goals T G _,
   if (G = []) (true) (
-    std.forall G (g\ coq.ltac.open (coq.ltac.call-ltac1 Tac) g []),
+    std.forall G (g\ coq.ltac.open (coq.ltac.call-ltac1 Tac) g []), !
 	 solve-all-with T Tac).
 }}.
 

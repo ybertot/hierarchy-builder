@@ -347,7 +347,7 @@ mk-sortclass-instance.under-binders Class _ SP (prod N T _) CP L (pi x y z\ Clau
   gref->pred-name Class P,
   @pi-decl N T x\ std.rev [x|L] (Lx x), pi y z\
 	 coq.elpi.predicate P {std.rev [y, z|L]} (C x y z),
-	 (Clause x y z) = (C x y z :- %coq.say "enter " P "for sortclass " y z,
+	 (Clause x y z) = (C x y z :- coq.say "enter " P "for sortclass " y z,
 		mk-app CP (Lx x) y,
 		mk-app SP (Lx x) z).
 mk-sortclass-instance.under-binders Class _ _ _ _ [] _ :-
@@ -368,14 +368,13 @@ pred mk-context-instance.under-binders.mk-predicate i:gref, i:list term, i:term,
 mk-context-instance.under-binders.mk-predicate Class ArgsC I TI Clause :-
   gref->pred-name Class P,
   coq.elpi.predicate P {std.rev [I|ArgsC]} C,
-  Clause = (pi shgoals goals\ C :- %coq.say "enter " P " with context",
+  Clause = (pi shgoals goals\ C :- coq.say "enter " P " with context",
 		coq.typecheck I TI ok,
-      %coq.say "try instance " I,
+      coq.say "try instance " I,
 		coq.ltac.collect-goals I goals shgoals,
-		%coq.say "goals: " goals shgoals,
-      @no-tc! => std.forall shgoals (g\ coq.ltac.open (coq.ltac.call-ltac1 "iter_exact") g []),
-      @no-tc! => std.forall goals (g\ coq.ltac.open (coq.ltac.call-ltac1 "iter_exact") g []),
-      coq.ltac.collect-goals I [] []%, coq.say "success"
+		coq.say "goals: " goals shgoals,
+		solve-all-with I "iter_exact",
+      coq.ltac.collect-goals I [] [], coq.say "success"
 		).
 
 pred mk-context-instance.under-binders i:gref, i:term, i:gref, i:term, i:list term, i:list term, o:prop.
