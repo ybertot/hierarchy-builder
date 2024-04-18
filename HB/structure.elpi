@@ -75,12 +75,6 @@ declare Module BSkel Sort :- std.do! [
     log.coq.env.add-const-noimplicits "arg_sort" SortProjection SortProjTy ff ArgSortCst
   ),
 
-  if-verbose (coq.say {header} "declaring generic_type canonical constant"),
-  (ClassAlias => class-def CurrentClass => GRDepsClauses => MixinMems =>
-    w-params.then MLwP mk-fun mk-fun (private.generic-body ClassName) Generic),
-  if-verbose (coq.say {header} "declaring generic constant =" Generic),
-  log.coq.env.add-const-noimplicits "generic_type" Generic _ @transparent! ConstGeneric,
-
   if-verbose (coq.say {header} "start module Exports"),
 
   log.coq.env.begin-module "Exports" none,
@@ -118,7 +112,7 @@ declare Module BSkel Sort :- std.do! [
     (if-arg-sort (private.declare-sort-coercion-elpi (global Structure) (global (const ArgSortCst))),
     private.declare-sort-coercion-elpi (global Structure) SortProjection),
 
-  private.declare-generic-coercion-elpi (global Structure) (global (const ConstGeneric)),
+  private.declare-generic-coercion-elpi Structure,
 
   if-verbose (coq.say {header} "exporting unification hints"),
   ClassAlias => Factories => GRDepsClauses =>
@@ -325,10 +319,11 @@ mk-generic-coercion-aux _ Structure G Args Clause :-
       coq.elaborate-skeleton w e r ok,
       coq.ltac.collect-goals r [] [])).
 
-pred mk-generic-coercion i:term, i:term, o:prop.
-mk-generic-coercion Structure G Clause :-
-  coq.typecheck Structure T ok,
-  mk-generic-coercion-aux T Structure G [] Clause.
+pred mk-generic-coercion i:gref, o:prop.
+mk-generic-coercion Structure Clause :-
+  coq.typecheck (global Structure) T ok,
+  get-constructor Structure G,
+  mk-generic-coercion-aux T (global Structure) (global G) [] Clause.
 
 pred mk-coe-class-body
   i:factoryname, % From class
@@ -566,13 +561,13 @@ declare-sort-coercion-elpi Structure Proj :-
   coq.elpi.accumulate _ "coercion.db" (clause _ _ Clause).
 
 % Declares "generic_type" as a Coercion in elpi's coercion db
-pred declare-generic-coercion-elpi i:term, i:term.
-declare-generic-coercion-elpi Structure G :-
+pred declare-generic-coercion-elpi i:gref.
+declare-generic-coercion-elpi Structure :-
 
   if-verbose (coq.say {header} "declare `generic_type` coercion in elpi"),
 
   %TODO: log.coq.coercion-elpi.declare 
-  mk-generic-coercion Structure G Clause,
+  mk-generic-coercion Structure Clause,
   coq.elpi.accumulate _ "coercion.db" (clause _ _ Clause).
 
 
